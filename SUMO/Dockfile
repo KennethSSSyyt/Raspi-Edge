@@ -1,0 +1,48 @@
+# === 第一阶段：编译环境 ===
+FROM golang:1.23-bullseye AS builder
+
+# 1. 使用 sed 换源 (阿里云)，保留原文件结构，更安全
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
+
+# 2. 安装依赖 (加入忽略签名错误的参数)
+RUN apt-get -o Acquire::Check-Valid-Until=false update && \
+    apt-get install -y --no-install-recommends \
+    libopencv-dev \
+    libzmq3-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+
+# 3. 编译 Go 程序
+COPY . .
+RUN go mod init rsu-core || true
+# 锁定 GoCV 版本 (匹配 Debian 的 OpenCV 4.5)
+RUN go get gocv.io/x/gocv@v0.31.0
+RUN go mod tidy
+RUN go build -o app main.go
+
+# === 第二阶段：运行环境 ===
+FROM debian:bullseye
+
+# 4. 同样使用 sed 换源
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
+
+# 5. 安装完整版 OpenCV 库 (核心修复)
+# libopencv-dev 包含了所有需要的 .so 文件
+RUN apt-get -o Acquire::Check-Valid-Until=false update && \
+    apt-get install -y --no-install-recommends \
+    libopencv-dev \
+    libzmq3-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root/
+# 从编译阶段复制这一步编译好的程序
+COPY --from=builder /app/app .
+
+EXPOSE 5000
+CMD ["./app"]

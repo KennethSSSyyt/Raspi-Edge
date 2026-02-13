@@ -1,0 +1,37 @@
+# Python 依赖包
+# 用于 Raspi-Edge 项目的 Python 推理引擎
+
+# AI 模型和推理
+ultralytics>=8.0.0
+onnxruntime>=1.15.0
+
+# 图像处理
+opencv-python-headless>=4.8.0
+opencv-contrib-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# Web 框架
+flask>=2.3.0
+
+# 数据存储
+redis>=5.0.0
+
+# 系统监控
+psutil>=5.9.0
+
+# 网络通信
+imagezmq>=1.1.1
+pyzmq>=25.0.0
+
+# 车牌识别（可选）
+# hyperlpr3>=1.0.0
+
+# 数据处理
+pandas>=2.0.0
+
+# 可视化（用于 SUMO 相关脚本）
+matplotlib>=3.7.0
+
+# 其他工具
+lapx>=0.5.5

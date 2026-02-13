@@ -1,0 +1,40 @@
+# docker-compose.yml: /home/pi/raspi-edge-ai/docker-compose.yml
+
+# version: '3.8'
+
+services:
+  # === Go 核心服务 (Edge Perception) ===
+  rsu-go-core:
+    build: ./go-edge
+    container_name: rsu-go-core
+    privileged: true # 开启特权模式以支持 GoCV 访问设备
+    ports:
+      - "5000:5000" # Web UI
+      - "5556:5556" # ZMQ PULL Service for PC results
+    volumes:
+      - ./go-edge/edge_metrics.csv:/app/edge_metrics.csv
+      # 映射视频目录
+      - ./python-infer/videos:/app/videos
+    ipc: host # 共享内存，用于 GoCV
+    restart: always
+
+  # === InfluxDB & Grafana (Edge Storage & Visualization) ===
+  influxdb:
+    image: influxdb:1.8
+    container_name: edge_influx
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influx_data:/var/lib/influxdb
+    environment:
+      - INFLUXDB_DB=traffic_db
+    restart: always
+    
+  grafana:
+    image: grafana/grafana:latest
+    container_name: edge_grafana
+    ports:
+      - "3000:3000"
+    links:
+      - influxdb
+    restart: always
